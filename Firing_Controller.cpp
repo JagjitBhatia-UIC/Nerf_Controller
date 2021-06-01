@@ -1,6 +1,9 @@
 #include "Firing_Controller.h"
 
 Firing_Controller::Firing_Controller() {
+	system("python3 firingScript.py");	// Start firingScript.py
+	usleep(1 * US_TO_SEC);		// Sleep for 1 second to wait for script to initialize
+
 	int sock;
 
 	struct sockaddr_in address;
@@ -32,7 +35,6 @@ Firing_Controller::Firing_Controller() {
 	}
 
 	server = sock;
-	usleep(1 * US_TO_SEC);
 }
 
 Firing_Controller::~Firing_Controller() {
