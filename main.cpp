@@ -3,7 +3,7 @@
 
 int main() {
 
-	//Example code
+	// Example code
 	
 	PTU_Controller ptu = PTU_Controller();
 	Firing_Controller gun = Firing_Controller();
