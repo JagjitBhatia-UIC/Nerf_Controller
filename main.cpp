@@ -9,9 +9,11 @@ int main() {
 	Firing_Controller gun = Firing_Controller();
 
 	ptu.toOrigin();
-	usleep(500000);
+	ptu.SetDelayMS(30);
+	for(int i = 0; i<100; i++) ptu.pan(12);
 	gun.firingOn();
-	usleep(500000);
+	usleep(5000000);
+	for(int j = 0; j<100; j++) ptu.pan(-12);
 	gun.firingOff();
 
 }

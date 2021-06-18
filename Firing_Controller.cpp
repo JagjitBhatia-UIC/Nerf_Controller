@@ -1,23 +1,23 @@
 #include "Firing_Controller.h"
 
 Firing_Controller::Firing_Controller() {
-	system("python3 firingScript.py");	// Start firingScript.py
-	usleep(1 * US_TO_SEC);		// Sleep for 1 second to wait for script to initialize
+	system("python3 firingScript.py > firingLog.txt &");	// Start firingScript.py
+  	usleep(1 * US_TO_SEC);		// Sleep for 1 second to wait for script to initialize
 
 	int sock;
 
 	struct sockaddr_in address;
 	
 	connected = false;
-
+	
 	if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		std::cout << "Failed to create socket" << std::endl;
 		return;
 	}
 
 	else {
-		std::cout << "Socket created!" << std::endl;
-		std::cout << "Attempting to connect...." << std::endl;
+		// std::cout << "Socket created!" << std::endl;
+		// std::cout << "Attempting to connect...." << std::endl;
 	}	
 
 	address.sin_family = AF_INET;
@@ -30,14 +30,17 @@ Firing_Controller::Firing_Controller() {
 	}
 
 	else {
-		std::cout << "Socket connected!" << std::endl;
+		//std::cout << "Socket connected!" << std::endl;
 		connected = true;
 	}
-
+	
+	std::cout << "Firing Controller Ready!" << std::endl;
 	server = sock;
 }
 
 Firing_Controller::~Firing_Controller() {
+	char* msg = (char*) "QUIT";
+	send(server, msg, strlen(msg), 0);
 	close(server);
 	connected = false;
 }

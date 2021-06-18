@@ -78,6 +78,7 @@ int PTU_Controller::PTU_Connect() {
 
     sleep(PTU_SERIAL_MAGIC_NUMBER);  // Sleep for "magic number" seconds before enabling serial writes
 
+    std::cout << "PTU Controller Ready!" << std::endl;
     return 0;
 }
 

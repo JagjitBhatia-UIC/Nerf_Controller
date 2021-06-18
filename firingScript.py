@@ -1,6 +1,11 @@
 import RPi.GPIO as GPIO
 import time
 import socket
+import logging
+
+logging.basicConfig(filename="firingLog.txt", level=logging.DEBUG)
+logging.captureWarnings(True)
+
 
 HOST = ''		# localhost
 PORT = 5687
@@ -16,12 +21,16 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setup(flywheel, GPIO.OUT)
 GPIO.setup(firing, GPIO.OUT)
 
+GPIO.output(flywheel, off)
+GPIO.output(firing, off)
+
 print('Starting firing script....\n')
 
 
 
 while True:
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+		print('just to see whats happening')
 		sock.bind((HOST, PORT))
 		sock.listen()
 		client, addr = sock.accept()
