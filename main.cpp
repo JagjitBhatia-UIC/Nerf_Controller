@@ -4,11 +4,12 @@
 #include <cmath>
 #include <pthread.h>
 
+// Shared globals
 int x_speed = 0;
 int y_speed = 0;
-
 bool firing = false;
 
+// Firing Controller Thread
 void *firing_thread(void* args) {
 	Firing_Controller gun = Firing_Controller();
 	
@@ -20,6 +21,7 @@ void *firing_thread(void* args) {
 	}
 }
 
+// PTU Controller Thread
 void *ptu_thread(void* args) {
 	PTU_Controller ptu = PTU_Controller();
   	ptu.toOrigin();
@@ -45,21 +47,21 @@ int main() {
 	
 	struct js_event e;
 	
-	
+	// Main loop
 	while(true) {
 		e = {};
 		read(js_fd, &e, sizeof(e));
 		
-		if(e.type >= 0x80) continue; // Ignore synthetic events
+		if(e.type >= 0x80) continue;	// Ignore synthetic events
 		
-		if(e.type == 1 && e.value == 1 && e.number == 2) break;  // "X" Quit
+		if(e.type == 1 && e.value == 1 && e.number == 2) break; 	// "X" Quit
 		
 		if(e.type == 2) {
-			if(e.number == 3) x_speed = round((e.value/32767.0) * 30);
+			if(e.number == 3) x_speed = round((e.value/32767.0) * 30);	// Handle left/right joystick movement
 			
-			if(e.number == 1) y_speed = round((e.value/32767.0) * 5);
+			if(e.number == 1) y_speed = round((e.value/32767.0) * 5);	// Handle up/down joystick movement
 			
-			if(e.number == 5) firing = (e.value > 0);
+			if(e.number == 5) firing = (e.value > 0);	// Handle trigger pull
 		
 		}
 		

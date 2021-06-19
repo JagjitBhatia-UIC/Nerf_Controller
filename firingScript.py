@@ -30,7 +30,6 @@ print('Starting firing script....\n')
 
 while True:
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-		print('just to see whats happening')
 		sock.bind((HOST, PORT))
 		sock.listen()
 		client, addr = sock.accept()
