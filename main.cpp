@@ -9,12 +9,8 @@ int y_speed = 0;
 
 bool firing = false;
 
-<<<<<<< HEAD
 void *firing_thread(void* args) {
 	Firing_Controller gun = Firing_Controller();
-=======
-	// Example code
->>>>>>> 3728ab327562dba441af86ea1ae756e602770f4b
 	
 	while(true) {
 		if(firing) gun.firingOn();
