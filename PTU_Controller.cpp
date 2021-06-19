@@ -112,7 +112,7 @@ int PTU_Controller::move_abs(int _pos_x, int _pos_y) {
             return -1;
         }
 
-        if(_pos_y < 530 || _pos_y > 610) {
+        if(_pos_y < 510 || _pos_y > 610) {
             std::cout << "Invalid Tilt Request!" << std::endl;
             return -1;
         }
