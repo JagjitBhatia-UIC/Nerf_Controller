@@ -27,6 +27,7 @@ class Firing_Controller {
 		void firingOn();
 		void firingOff();
 		void fire(int time_sec);
+		void disconnect();
 };
 
 #endif

@@ -38,11 +38,17 @@ Firing_Controller::Firing_Controller() {
 	server = sock;
 }
 
+void Firing_Controller::disconnect() {
+	if(connected) {
+		char* msg = (char*) "QUIT";
+		send(server, msg, strlen(msg), 0);
+		close(server);
+		connected = false;
+	}
+}
+
 Firing_Controller::~Firing_Controller() {
-	char* msg = (char*) "QUIT";
-	send(server, msg, strlen(msg), 0);
-	close(server);
-	connected = false;
+	disconnect();
 }
 
 void Firing_Controller::firingOn() {
