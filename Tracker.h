@@ -13,10 +13,15 @@
 // Include std libraries
 #include <iostream>
 #include <string>
+#include <unordered_map>
+#include <algorithm>
+#include <iterator>
+#include <thread>
 
 // Include C libraries
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 
 typedef struct Target {
 	cv::Rect bbox;
@@ -31,16 +36,28 @@ class Tracker {
 		char color;
 		int cameraID;
 		Target target;
+		bool trackerRunning;
+		std::thread trackerThread;
 
 		void getCentroid(const cv::Rect bbox, int &center_x, int &center_y);
+		void convertFacesToBodies(std::vector<cv::Rect> &faces);
+		void filterByColor(std::vector<cv::Rect> &bodies, cv::Mat img);
+		void track();
+		bool targetLocked();
+		void getTargetPosition(int &x, int &y);
+		std::vector<std::string> split(const std::string& s, char delimiter);
 
-	
+
 	public:
 		Tracker();
 		Tracker(char _color);
 		Tracker(int _cameraID);
 		Tracker(char _color, int _cameraID);
 		~Tracker();
+		bool targetLocked();
+		void getTargetPosition(int &x, int &y);
+		void startTracking();
+		void stopTracking();
 
 };
 

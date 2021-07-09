@@ -16,6 +16,10 @@ Tracker::Tracker(char _color, int _cameraID) {
 	color = _color;
 	cameraID = _cameraID;
 	locked = false;
+	trackerRunning = false;
+	center_x = -1;
+	center_y = -1;
+
 
 	cap.open(cameraID, cv::CAP_ANY);
 
@@ -23,7 +27,6 @@ Tracker::Tracker(char _color, int _cameraID) {
 		std::cout << "ERROR: Unable to open camera!" << std::endl;
 		return;
 	}
-
 }
 
 void Tracker::convertFacesToBodies(std::vector<cv::Rect> &faces) {
@@ -33,8 +36,86 @@ void Tracker::convertFacesToBodies(std::vector<cv::Rect> &faces) {
 	}
 }
 
-void Tracker::filterByColor(std::vector<cv::Rect> &bodies) {
-	// TODO: Implement color filtering
+// Snagged from https://www.fluentcpp.com/2017/04/21/how-to-split-a-string-in-c/
+std::vector<std::string> Tracker::split(const std::string& s, char delimiter)
+{
+   std::vector<std::string> tokens;
+   std::string token;
+   std::istringstream tokenStream(s);
+   while (std::getline(tokenStream, token, delimiter))
+   {
+      tokens.push_back(token);
+   }
+   return tokens;
+}
+
+void Tracker::getCentroid(const cv::Rect bbox, int &center_x, int &center_y) {
+	center_x = bbox.x + round((bbox.width * 1.0)/2.0);
+	center_y = bbox.y + round((bbox.height * 1.0)/2.0);
+}
+
+void Tracker::filterByColor(std::vector<cv::Rect> &bodies, cv::Mat img) {
+	std::vector<cv::Rect> filtered;
+	std::vector<std::string> rgb_tokens;
+	std::unordered_map<std::string, int> colors;
+
+	std::string color_key;
+	std::string maxColor;
+
+	int origin_x, origin_y;
+	int R, G, B;
+	double dist;
+	double strength;
+
+
+	for(int i = 0; i < bodies.size(); i++) {
+		colors.clear();
+
+		Tracker::getCentroid(bodies[i], origin_x, origin_y);
+
+		for(int m = 0; m < img.row; i++) {
+			for(int n = 0; n < img.cols; j++) {
+				dist = sqrt(pow(abs(origin_x - m), 2) + pow(abs(origin_y - n), 2));
+				strength = 1.0/(1.0 + dist);
+
+				B = static_cast<int>(img.at<cv::Vec3b>(m, n)[0]);
+				G = static_cast<int>(img.at<cv::Vec3b>(m, n)[1]);
+				R = static_cast<int>(img.at<cv::Vec3b>(m, n)[2]);
+
+				color_key = std::to_string(R) + ":" + std::to_string(G) + ":" + std::to_string(B);
+
+				if(colors.find(color_key) == colors.end()) {
+					colors[color_key] = strength;
+				}
+
+				else {
+					colors[color_key] += strength;
+				}
+			}
+		}
+
+		maxColor = std::max_element(colors.begin(), colors.end(), 
+				[](std::pair<std::string, int> color1, std::pair<std::string, int> color2) -> bool {
+					return color1.second < color2.second;
+				})->first;
+	
+	
+		rgb_tokens = Tracker::split(maxColor, ":");
+	
+		R = std::stoi(rgb_tokens[0]);
+		G = std::stoi(rgb_tokens[1]);
+		B = std::stoi(rgb_tokens[2]);
+	
+		if(color == 'B') {
+			if(B > 100 && B > G && (B + G) > R * 2) filtered.push_back(bodies[i]);
+		}
+
+		if(color == 'R') {
+			if(R > 100 && R > G * 2 && R > B * 2) filtered.push_back(bodies[i]);
+		}
+	}
+
+	bodies = filtered;
 }
 
 void Tracker::track() {
@@ -48,7 +129,7 @@ void Tracker::track() {
 
 	int frameCount = 0;
 	
-	cv::Ptr<Tracker> tracker = cv::TrackerMOSSE::create();
+	cv::Ptr<cv::Tracker> tracker = cv::TrackerMOSSE::create();
 
 	cv::Mat frame;
 	cv::Mat frame_gray;
@@ -66,7 +147,7 @@ void Tracker::track() {
 
 
 	// TODO: Improve code re-use for target acquisition/verification 
-	while(true) {
+	while(trackerRunning) {
 		cap.read(frame);
 
 		if(frame.empty()) {
@@ -107,6 +188,8 @@ void Tracker::track() {
 				continue;
 			}
 
+			Tracker::getCentroid(target.bbox, target.center_x, target.center_y);
+
 			frameCount++;
 
 
@@ -144,3 +227,29 @@ void Tracker::track() {
 
 	}
 }
+
+void Tracker::startTracking() {
+	if(!trackerRunning) {
+		trackerRunning = true;
+		trackerThread = std::thread(&Tracker::track, this);
+	}
+}
+
+void Tracker::stopTracking() {
+	trackerRunning = false;
+	trackerThread.join();
+}
+
+bool Tracker::targetLocked() {
+	return locked;
+}
+
+void Tracker::getTargetPosition(int &x, int &y) {
+	x = center_x;
+	y = center_y;
+}
+
+Tracker::~Tracker() {
+	if(trackerRunning) Tracker::stopTracking();
+}
+
