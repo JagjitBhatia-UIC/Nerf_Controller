@@ -1,27 +1,31 @@
 #include "Tracker.h"
+#include "nms.hpp"
 
 Tracker::Tracker() {
-	Tracker::Tracker('R', 0);
+	Tracker('R', 0);
 }
 
 Tracker::Tracker(char _color) {
-	Tracker::Tracker(_color, 0);
+	Tracker(_color, 0);
 }
 
 Tracker::Tracker(int _cameraID) {
-	Tracker::Tracker('R', _cameraID);
+	Tracker('R', _cameraID);
 }
 
 Tracker::Tracker(char _color, int _cameraID) {
+	//std::cout << "Initiating tracker of color: " << _color << " and device: " << _cameraID << std::endl;
 	color = _color;
 	cameraID = _cameraID;
 	locked = false;
 	trackerRunning = false;
-	center_x = -1;
-	center_y = -1;
+	target.center_x = -1;
+	target.center_y = -1;
 
 
 	cap.open(cameraID, cv::CAP_ANY);
+	cap.set(3, 640);
+	cap.set(4, 420);
 
 	if(!cap.isOpened()) {
 		std::cout << "ERROR: Unable to open camera!" << std::endl;
@@ -31,8 +35,8 @@ Tracker::Tracker(char _color, int _cameraID) {
 
 void Tracker::convertFacesToBodies(std::vector<cv::Rect> &faces) {
 	for(int i = 0; i<faces.size(); i++) {
-		faces[i].x *= 2;
-		faces[i].y *= 4;
+		faces[i].width *= 2;
+		faces[i].height *= 4;
 	}
 }
 
@@ -49,9 +53,29 @@ std::vector<std::string> Tracker::split(const std::string& s, char delimiter)
    return tokens;
 }
 
+
+
 void Tracker::getCentroid(const cv::Rect bbox, int &center_x, int &center_y) {
 	center_x = bbox.x + round((bbox.width * 1.0)/2.0);
 	center_y = bbox.y + round((bbox.height * 1.0)/2.0);
+}
+
+void Tracker::avgCentroid(std::vector<cv::Rect> &bodies, int &center_x, int &center_y) {
+	int sum_center_x = 0;
+	int sum_center_y = 0;
+	int x, y;
+
+	for(int i = 0; i<bodies.size(); i++) {
+		getCentroid(bodies[i], x, y);
+		sum_center_x += x;
+		sum_center_y += y;
+	}
+
+	int average_center_x = round((sum_center_x * 1.0)/(bodies.size() * 1.0));
+	int average_center_y = round((sum_center_y * 1.0)/(bodies.size() * 1.0));
+
+	center_x = average_center_x;
+	center_y = average_center_y;
 }
 
 void Tracker::filterByColor(std::vector<cv::Rect> &bodies, cv::Mat img) {
@@ -71,10 +95,10 @@ void Tracker::filterByColor(std::vector<cv::Rect> &bodies, cv::Mat img) {
 	for(int i = 0; i < bodies.size(); i++) {
 		colors.clear();
 
-		Tracker::getCentroid(bodies[i], origin_x, origin_y);
+		getCentroid(bodies[i], origin_x, origin_y);
 
-		for(int m = 0; m < img.row; i++) {
-			for(int n = 0; n < img.cols; j++) {
+		for(int m = 0; m < img.rows; m++) {
+			for(int n = 0; n < img.cols; n++) {
 				dist = sqrt(pow(abs(origin_x - m), 2) + pow(abs(origin_y - n), 2));
 				strength = 1.0/(1.0 + dist);
 
@@ -100,7 +124,7 @@ void Tracker::filterByColor(std::vector<cv::Rect> &bodies, cv::Mat img) {
 				})->first;
 	
 	
-		rgb_tokens = Tracker::split(maxColor, ":");
+		rgb_tokens = split(maxColor, ':');
 	
 		R = std::stoi(rgb_tokens[0]);
 		G = std::stoi(rgb_tokens[1]);
@@ -118,7 +142,24 @@ void Tracker::filterByColor(std::vector<cv::Rect> &bodies, cv::Mat img) {
 	bodies = filtered;
 }
 
+std::vector<std::vector<float>> rectanglesToFloatVector(std::vector<cv::Rect> rectangles) {
+	std::vector<std::vector<float>> to_ret;
+
+	for(int i = 0; i<rectangles.size(); i++) {
+		std::vector<float> rectangle;
+		rectangle.push_back(rectangles[i].x);
+		rectangle.push_back(rectangles[i].y);
+		rectangle.push_back(rectangles[i].x + rectangles[i].width);
+		rectangle.push_back(rectangles[i].y + rectangles[i].height);
+
+		to_ret.push_back(rectangle);
+	}
+
+	return to_ret;
+}
+
 void Tracker::track() {
+	trackerRunning = true;
 	cv::CascadeClassifier faceDetector;
 	cv::HOGDescriptor bodyDetector;
 	std::vector<cv::Rect> faces;
@@ -127,16 +168,14 @@ void Tracker::track() {
 	std::vector<cv::Rect> bodies_cropped;
 	std::vector<double> weights;
 
+	cv::Ptr<cv::legacy::TrackerMOSSE> tracker;
+
 	int frameCount = 0;
 	
-	cv::Ptr<cv::Tracker> tracker = cv::TrackerMOSSE::create();
-
 	cv::Mat frame;
 	cv::Mat frame_gray;
-	cv::Mat cropped;
-	cv::Mat cropped_gray;
 	
-	if(!faceDetector.load(samples::findFile("data/haarcascades/haarcascade_frontalface_alt.xml"))) {
+	if(!faceDetector.load("/Users/jagjitbhatia/Desktop/cvtest/opencv/data/haarcascades/haarcascade_frontalface_default.xml")) {
 		std::cout << "ERROR: Unable to load face detector!" << std::endl;
 		return;
 	}
@@ -154,41 +193,51 @@ void Tracker::track() {
 			std::cout << "ERROR: Empty Frame!" << std::endl;
 			continue;
 		}
-
+		
 		// If target is not yet acquired, attempt to acquire target
 		if(!locked) {
-			cv::cvtColor(frame, frame_gray);
+			cv::cvtColor(frame, frame_gray, cv::COLOR_RGB2GRAY);
 			cv::equalizeHist(frame_gray, frame_gray);
 
-			faceDetector.detectMultiScale(frame_gray, faces);
-			bodyDetector.detectMultiScale(frame_gray, bodies, weights);
+
+			faceDetector.detectMultiScale(frame_gray, faces, 1.3, 5); // 1.3 = scale factor, 5 = minimum neighbor
+			bodyDetector.detectMultiScale(frame_gray, bodies, weights,0, cv::Size(8,8));
 
 			// Convert faces to (estimate) bodies
-			Tracker::convertFacesToBodies(faces);
+			convertFacesToBodies(faces);
 
 			// Append body estimates to bodies vector
 			bodies.insert(bodies.end(), faces.begin(), faces.end());
+			std::vector<std::vector<float>> bodies_vect = rectanglesToFloatVector(bodies);
+			bodies = nms(bodies_vect, 0.001);
 
-			Tracker::filterByColor(bodies, frame);		// IMPORTANT: Use frame and not frame_gray for color detection
-
-			target.bbox = bodies[rand() % bodies.size()];
-
-			Tracker::getCentroid(target.bbox, target.center_x, target.center_y);
-
-			tracker->init(frame, target.bbox);
+			filterByColor(bodies, frame);		// IMPORTANT: Use frame and not frame_gray for color detection
 			
+			if(bodies.size() > 0) {
+				target.bbox = bodies[rand() % bodies.size()];
+				getCentroid(target.bbox, target.center_x, target.center_y);
+				tracker = cv::legacy::TrackerMOSSE::create();
+				tracker->init(frame, target.bbox);
+				locked = true;
+			}
 		}
 
 		else {
 			// If tracker failure occurs, remove lock and reacquire target
-			if(!tracker->update(frame, target.bbox)) {
-				std::cout << "TARGET LOST!" << std::endl;
+			if((!tracker->update(frame, target.bbox))) {
 				locked = false;
 				frameCount = 0;
 				continue;
 			}
 
-			Tracker::getCentroid(target.bbox, target.center_x, target.center_y);
+			getCentroid(target.bbox, target.center_x, target.center_y);
+
+
+			if(target.center_x < 0 || target.center_y < 0) {
+				locked = false;
+				frameCount = 0;
+				continue;
+			}
 
 			frameCount++;
 
@@ -196,34 +245,45 @@ void Tracker::track() {
 			// Verify locked target is actually a target
 			// Do this every 150 frames = 5 seconds @ 30 FPS, 2.5 seconds @ 60 FPS
 			if(frameCount > 150) {	
-				cropped = cv::Mat(frame, target.bbox);
+				frameCount = 0;
 
-				cv::cvtColor(cropped, cropped_gray);
-				cv::equalizeHist(cropped_gray, cropped_gray);
+				if(target.center_x < 0 || target.center_y < 0) {
+					locked = false;
+					continue;
+				}
+				
+				cv::Rect target_bbox = target.bbox;
 
-				faceDetector.detectMultiScale(cropped_gray, faces_cropped);
-				bodyDetector.detectMultiScale(cropped_gray, bodies_cropped, weights);
+				if(target.bbox.x < 0) target_bbox.x = 0;
+				if(target.bbox.y < 0) target_bbox.y = 0;
+
+				if(target.bbox.x + target.bbox.width > frame.cols) {
+					target_bbox.width = frame.cols - target.bbox.x;
+				}
+
+				if(target.bbox.y + target.bbox.height > frame.rows) {
+					target_bbox.height = frame.rows - target.bbox.y;
+				}
+
+				faceDetector.detectMultiScale(frame_gray, faces, 1.3, 5); // 1.3 = scale factor, 5 = minimum neighbor
+				bodyDetector.detectMultiScale(frame_gray, bodies, weights,0, cv::Size(8,8));
 
 				// Convert faces to (estimate) bodies
-				Tracker::convertFacesToBodies(faces_cropped);
+				convertFacesToBodies(faces_cropped);
 
 				// Append body estimates to bodies vector
 				bodies_cropped.insert(bodies_cropped.end(), faces_cropped.begin(), faces_cropped.end());
 
-				Tracker::filterByColor(bodies_cropped, frame);		// IMPORTANT: Use frame and not frame_gray for color detection
+				filterByColor(bodies_cropped, frame);		// IMPORTANT: Use frame and not frame_gray for color detection
 
 				if(bodies_cropped.size() < 1) {
-					std::cout << "TARGET LOST!" << std::endl;
 					locked = false;
 				}
 
-				frameCount = 0;
 			}
 
 
 		}
-
-
 
 	}
 }
@@ -245,11 +305,11 @@ bool Tracker::targetLocked() {
 }
 
 void Tracker::getTargetPosition(int &x, int &y) {
-	x = center_x;
-	y = center_y;
+	x = target.center_x;
+	y = target.center_y;
 }
 
 Tracker::~Tracker() {
-	if(trackerRunning) Tracker::stopTracking();
+	if(trackerRunning) stopTracking();
 }
 
