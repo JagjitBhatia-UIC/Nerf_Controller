@@ -22,7 +22,6 @@ int y_speed = 0;
 int x_position = 0;
 int y_position = 0;
 bool firing = false;
-bool trackerRunning = false;
 bool colorToggle = false;
 char color = 'R';
 int camera = 0;
@@ -77,7 +76,7 @@ void *tracker_thread(void* args) {
 			}
 		}
 
-		tracker.stopTracking();
+		if(trackerRunning) tracker.stopTracking();
 		trackerRunning = false;
 
 	}
@@ -181,8 +180,6 @@ int main(int argc, char **argv) {
 	// Main loop
 	while(!quit) {
 		while(mode == MANUAL) {
-			if(trackerRunning) tracker.stopTracking();
-
 			e = {};
 			read(js_fd, &e, sizeof(e));
 			
@@ -209,9 +206,6 @@ int main(int argc, char **argv) {
 		}
 
 		while(mode == AUTONOMOUS) {
-			if(!trackerRunning) tracker.startTracking();
-			trackerRunning = true;
-
 			e = {};
 			read(js_fd, &e, sizeof(e));
 			
