@@ -24,8 +24,8 @@ Tracker::Tracker(char _color, int _cameraID) {
 
 
 	cap.open(cameraID, cv::CAP_ANY);
-	cap.set(3, 640);
-	cap.set(4, 420);
+	cap.set(3, RESOLUTION_X);
+	cap.set(4, RESOLUTION_Y);
 
 	if(!cap.isOpened()) {
 		std::cout << "ERROR: Unable to open camera!" << std::endl;

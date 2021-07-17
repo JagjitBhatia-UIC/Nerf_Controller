@@ -24,6 +24,9 @@
 #include <time.h>
 #include <math.h>
 
+#define RESOLUTION_X 620
+#define RESOLUTION_Y 360
+
 typedef struct Target {
 	cv::Rect_<double> bbox;
 	int center_x;

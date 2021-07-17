@@ -9,7 +9,7 @@ project(Nerf_Controller)
 
 # set OpenCV_DIR variable equal to the path to the cmake
 # files within the previously installed opencv program
-set(OpenCV_DIR /Users/jagjitbhatia/Desktop/cvtest/install/lib/cmake/opencv4)
+set(OpenCV_DIR /usr/local/lib/cmake/opencv4)
 
 # Tell compiler to use C++ 14 features which is needed because
 # Clang version is often behind in the XCode installation
@@ -27,4 +27,4 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 add_executable(nerf main.cpp PTU_Controller.cpp Firing_Controller.cpp Tracker.cpp nms.cpp)
 
 # tell it to link the executable target against OpenCV
-target_link_libraries(nerf ${OpenCV_LIBS} )
+target_link_libraries(nerf ${OpenCV_LIBS} pthread)
