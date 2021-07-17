@@ -15,7 +15,10 @@
 
 #define ORIGIN_X 511
 #define ORIGIN_Y 530
+#define MIN_POSITION 0
 #define MAX_POSITION 1023
+#define MIN_POSITION_Y 510
+#define MAX_POSITION_Y 610
 
 #define PTU_PACKET_SIZE_BYTES 8
 #define PTU_SERIAL_MAGIC_NUMBER 7   // Magic number to sleep before starting PTU serial writes 

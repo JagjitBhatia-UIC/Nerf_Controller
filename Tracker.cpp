@@ -14,8 +14,8 @@ Tracker::Tracker(int _cameraID) {
 }
 
 Tracker::Tracker(char _color, int _cameraID) {
-	//std::cout << "Initiating tracker of color: " << _color << " and device: " << _cameraID << std::endl;
-	color = _color;
+	if(_color != 'B' && _color != 'R') color = 'R';
+	else color = _color;
 	cameraID = _cameraID;
 	locked = false;
 	trackerRunning = false;
@@ -31,6 +31,11 @@ Tracker::Tracker(char _color, int _cameraID) {
 		std::cout << "ERROR: Unable to open camera!" << std::endl;
 		return;
 	}
+}
+
+void Tracker::toggleColor() {
+	if(color == 'R') color = 'B';
+	else color = 'R';
 }
 
 void Tracker::convertFacesToBodies(std::vector<cv::Rect> &faces) {

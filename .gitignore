@@ -3,3 +3,4 @@ firingLog.txt
 connectPi.sh
 build/*
 .vscode/*
+build/*

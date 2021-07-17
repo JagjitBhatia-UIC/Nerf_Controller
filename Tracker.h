@@ -58,6 +58,7 @@ class Tracker {
 		void startTracking();
 		void stopTracking();
 		void avgCentroid(std::vector<cv::Rect> &bodies, int &center_x, int &center_y);
+		void toggleColor();
 
 };
 
