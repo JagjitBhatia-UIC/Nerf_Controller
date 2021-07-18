@@ -53,7 +53,7 @@ void *tracker_thread(void* args) {
 
 			if(colorChanged != colorToggle) {
 				std::cout << "Performing color toggle..." << std::endl;
-				tracker.toggleColoTOGGLEr();
+				tracker.toggleColor();
 				colorChanged = !colorChanged;
 			}
 
