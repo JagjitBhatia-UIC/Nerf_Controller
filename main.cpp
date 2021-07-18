@@ -72,7 +72,7 @@ void *tracker_thread(void* args) {
 				}
 
 				// Target timeout at 1.5 seconds - this is designed to continue locking even during fluctuations
-				if((float( clock() - begin_time ) /  CLOCKS_PER_SEC) > 1) {
+				if((float( clock() - begin_time ) /  CLOCKS_PER_SEC) > 1 && state == ENGAGE) {
 					std::cout << "Target timed out....Switching to SCAN" << std::endl;
 					state = SCAN;
 				}
