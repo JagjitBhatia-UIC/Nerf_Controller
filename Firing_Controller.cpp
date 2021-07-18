@@ -1,7 +1,7 @@
 #include "Firing_Controller.h"
 
 Firing_Controller::Firing_Controller() {
-	system("python3 firingScript.py > firingLog.txt &");	// Start firingScript.py
+	system("python3 ../firingScript.py > firingLog.txt &");	// Start firingScript.py
   	usleep(1 * US_TO_SEC);		// Sleep for 1 second to wait for script to initialize
 
 	int sock;

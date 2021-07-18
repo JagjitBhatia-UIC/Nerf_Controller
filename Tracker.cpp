@@ -180,7 +180,7 @@ void Tracker::track() {
 	cv::Mat frame;
 	cv::Mat frame_gray;
 	
-	if(!faceDetector.load("/home/jagjitbhatia/Desktop/opencv/opencv-master/data/haarcascades/haarcascade_frontalface_default.xml")) {
+	if(!faceDetector.load("/home/pi/Desktop/opencv/opencv-master/data/haarcascades/haarcascade_frontalface_default.xml")) {
 		std::cout << "ERROR: Unable to load face detector!" << std::endl;
 		return;
 	}
