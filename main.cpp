@@ -53,7 +53,7 @@ void *tracker_thread(void* args) {
 
 			if(colorChanged != colorToggle) {
 				std::cout << "Performing color toggle..." << std::endl;
-				tracker.toggleColor();
+				tracker.toggleColoTOGGLEr();
 				colorChanged = !colorChanged;
 			}
 
@@ -110,8 +110,9 @@ void *ptu_thread(void* args) {
   	
 	while(true) {
 		while(mode == MANUAL) {
-			ptu.pan(x_speed);
-			ptu.tilt(y_speed);
+			if(x_speed != 0) ptu.pan(x_speed);
+
+			if(y_speed != 0) ptu.tilt(y_speed);
 			
 			usleep(5000);	
 		}
