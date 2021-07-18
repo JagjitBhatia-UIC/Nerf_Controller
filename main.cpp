@@ -52,7 +52,7 @@ void *tracker_thread(void* args) {
 			if(!trackerRunning) tracker.startTracking();
 
 			if(colorChanged != colorToggle) {
-				std::cout << "Performing color toggle..." << std::endl;
+				std::cout << "\n\n\n\n\nPerforming color toggle...\n\n\n\n\n" << std::endl;
 				tracker.toggleColor();
 				colorChanged = !colorChanged;
 			}
@@ -60,6 +60,7 @@ void *tracker_thread(void* args) {
 			if(tracker.targetLocked()) {
 				timerOn = false;
 				tracker.getTargetPosition(tracker_x, tracker_y);
+				std::cout << "TARGET LOCKED AT POSITION: " << tracker_x << " " << tracker_y << std::endl;
 				convertTrackerPositionToPanTilt(tracker_x, tracker_y, x_position, y_position);
 				state = ENGAGE;
 			}
