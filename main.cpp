@@ -52,6 +52,7 @@ void *tracker_thread(void* args) {
 			if(!trackerRunning) tracker.startTracking();
 
 			if(colorChanged != colorToggle) {
+				std::cout << "Performing color toggle..." << std::endl;
 				tracker.toggleColor();
 				colorChanged = !colorChanged;
 			}
@@ -71,6 +72,7 @@ void *tracker_thread(void* args) {
 
 				// Target timeout at 1.5 seconds - this is designed to continue locking even during fluctuations
 				if((float( clock() - begin_time ) /  CLOCKS_PER_SEC) > 1) {
+					std::cout << "Target timed out....Switching to SCAN" << std::endl;
 					state = SCAN;
 				}
 			}
@@ -115,19 +117,19 @@ void *ptu_thread(void* args) {
 		}
 
 		while(mode == AUTONOMOUS) {
-			while(state == SCAN) {
-				for(int i = MIN_POSITION; i < MAX_POSITION && state == SCAN; i += 5) {
+			while(state == SCAN && mode == AUTONOMOUS) {
+				for(int i = MIN_POSITION; i < MAX_POSITION && state == SCAN && mode == AUTONOMOUS; i += 5) {
 					ptu.pan_abs(i);
 				}
 
-				if(state != SCAN) break;
+				if(state != SCAN || mode != AUTONOMOUS) break;
 
-				for(int j = MAX_POSITION; j > MIN_POSITION && state == SCAN; j -= 5) {
+				for(int j = MAX_POSITION; j > MIN_POSITION && state == SCAN && mode == AUTONOMOUS; j -= 5) {
 					ptu.pan_abs(j);
 				}
 			}
 
-			while(state == ENGAGE) {
+			while(state == ENGAGE && mode == AUTONOMOUS) {
 				ptu.move_abs(x_position, y_position);
 			}
 
@@ -191,6 +193,7 @@ int main(int argc, char **argv) {
 			}
 
 			if(e.type == 1 && e.value == 1 && e.number == 3) {
+				std::cout << "SWITCHING MODE TO AUTONOMOUS" << std::endl;
 				mode = AUTONOMOUS;
 				break;
 			}
@@ -217,11 +220,13 @@ int main(int argc, char **argv) {
 			}
 
 			if(e.type == 1 && e.value == 1 && e.number == 3) {
+				std::cout << "SWITCHING MODE TO MANUAL" << std::endl;
 				mode = MANUAL;
 				break;
 			}
 
 			if(e.type == 1 && e.value == 1 && e.number == 1) {
+				std::cout << "SWITCHING TARGET COLOR" << std::endl;
 				colorToggle = !colorToggle;
 			}
 		}
