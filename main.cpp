@@ -19,8 +19,8 @@
 // Shared globals
 int x_speed = 0;
 int y_speed = 0;
-int x_position = 0;
-int y_position = 0;
+int x_position;
+int y_position;
 bool firing = false;
 bool colorToggle = false;
 char color = 'R';
@@ -30,11 +30,17 @@ int state;
 
 // Convert tracker x,y coordinates to pan,tilt movements
 void convertTrackerPositionToPanTilt(int tracker_x, int tracker_y, int &pan, int &tilt) {
-  tracker_x -= RESOLUTION_X/2;
-  tracker_y -= RESOLUTION_Y/2;
+ 
 
+  /*
   pan =  round(((double) (tracker_x * 1.0)/RESOLUTION_X) * ((double) (MAX_POSITION * 1.0)/FOV_X));
-  tilt =  round(((double) (tracker_y * 1.0)/RESOLUTION_Y) * ((double) (MAX_POSITION_Y * 1.0)/FOV_Y));
+  tilt =  round(((double) (tracker_y * 1.0)/RESOLUTION_Y) * ((double) (MAX_POSITION_Y * 1.0)/FOV_Y)); */
+
+  //pan = round(((double) (tracker_x * 1.0)/RESOLUTION_X) * ((double) (FOV_X/360.0) * (MAX_POSITION * 1.0)/(360.0)));
+
+   pan = -1 * round(((((double) (tracker_x - (RESOLUTION_X * 1.0)/2)) * ((double) FOV_X))/(360.0))/(270.0/MAX_POSITION));
+
+  //pan *= 10;
 }
 
 // Tracker Controller Thread
@@ -106,8 +112,14 @@ void *firing_thread(void* args) {
 // PTU Controller Thread
 void *ptu_thread(void* args) {
 	PTU_Controller ptu = PTU_Controller();
+	int curr_x, curr_y;
   	ptu.toOrigin();
-  	ptu.SetDelayMS(20);
+  	ptu.SetDelayMS(0);
+
+	ptu.getCurrentPosition(curr_x, curr_y);
+
+
+	
   	
 	while(true) {
 		while(mode == MANUAL) {
@@ -119,20 +131,29 @@ void *ptu_thread(void* args) {
 		}
 
 		while(mode == AUTONOMOUS) {
+			ptu.toOrigin();
+
+			/*
 			while(state == SCAN && mode == AUTONOMOUS) {
-				for(int i = MIN_POSITION; i < MAX_POSITION && state == SCAN && mode == AUTONOMOUS; i += 5) {
-					ptu.pan_abs(i);
+				ptu.getCurrentPosition(curr_x, curr_y);
+
+				for(int i = curr_x; i < MAX_POSITION && state == SCAN && mode == AUTONOMOUS; i += 2) {
+					ptu.pan(2);
+					usleep(2000);
 				}
 
 				if(state != SCAN || mode != AUTONOMOUS) break;
 
-				for(int j = MAX_POSITION; j > MIN_POSITION && state == SCAN && mode == AUTONOMOUS; j -= 5) {
-					ptu.pan_abs(j);
+				for(int j = curr_x; j > MIN_POSITION && state == SCAN && mode == AUTONOMOUS; j -= 2) {
+					ptu.pan(-2);
+					usleep(1000);
 				}
-			}
+			}*/
 
 			while(state == ENGAGE && mode == AUTONOMOUS) {
-				ptu.move_abs(x_position, y_position);
+				std::cout << "MOVING BY X: " << x_position << std::endl;
+				ptu.pan_abs(ORIGIN_X + x_position); 
+				//ptu.move_abs(x_position, y_position);
 			}
 
 
@@ -199,7 +220,7 @@ int main(int argc, char **argv) {
 				mode = AUTONOMOUS;
 				break;
 			}
-			
+
 			if(e.type == 2) {
 				if(e.number == 3) x_speed = round((e.value/32767.0) * 30);	// Handle left/right joystick movement
 				

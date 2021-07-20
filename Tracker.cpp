@@ -40,7 +40,6 @@ void Tracker::toggleColor() {
 
 void Tracker::convertFacesToBodies(std::vector<cv::Rect> &faces) {
 	for(int i = 0; i<faces.size(); i++) {
-		faces[i].width *= 2;
 		faces[i].height *= 4;
 	}
 }
@@ -96,6 +95,11 @@ void Tracker::filterByColor(std::vector<cv::Rect> &bodies, cv::Mat img) {
 	double dist;
 	double strength;
 
+	int max_strength = -1;
+	int max_x, max_y;
+
+	std::string max_color_key;
+
 
 	for(int i = 0; i < bodies.size(); i++) {
 		colors.clear();
@@ -107,11 +111,18 @@ void Tracker::filterByColor(std::vector<cv::Rect> &bodies, cv::Mat img) {
 				dist = sqrt(pow(abs(origin_x - m), 2) + pow(abs(origin_y - n), 2));
 				strength = 1.0/(1.0 + dist);
 
+
 				B = static_cast<int>(img.at<cv::Vec3b>(m, n)[0]);
 				G = static_cast<int>(img.at<cv::Vec3b>(m, n)[1]);
 				R = static_cast<int>(img.at<cv::Vec3b>(m, n)[2]);
 
 				color_key = std::to_string(R) + ":" + std::to_string(G) + ":" + std::to_string(B);
+
+				if(strength > max_strength) {
+					max_x = m;
+					max_y = n;
+					max_color_key = color_key;
+				}
 
 				if(colors.find(color_key) == colors.end()) {
 					colors[color_key] = strength;
@@ -123,6 +134,8 @@ void Tracker::filterByColor(std::vector<cv::Rect> &bodies, cv::Mat img) {
 			}
 		}
 
+		
+
 		maxColor = std::max_element(colors.begin(), colors.end(), 
 				[](std::pair<std::string, int> color1, std::pair<std::string, int> color2) -> bool {
 					return color1.second < color2.second;
@@ -130,10 +143,24 @@ void Tracker::filterByColor(std::vector<cv::Rect> &bodies, cv::Mat img) {
 	
 	
 		rgb_tokens = split(maxColor, ':');
-	
+
+		
 		R = std::stoi(rgb_tokens[0]);
 		G = std::stoi(rgb_tokens[1]);
-		B = std::stoi(rgb_tokens[2]);
+		B = std::stoi(rgb_tokens[2]); 
+
+		/*
+
+		B = static_cast<int>(img.at<cv::Vec3b>(origin_x, origin_y)[0]);
+		G = static_cast<int>(img.at<cv::Vec3b>(origin_x, origin_y)[1]);
+		R = static_cast<int>(img.at<cv::Vec3b>(origin_x, origin_y)[2]);*/
+
+		
+
+		std::cout << "RGB: " << R << " " << G << " " << B << std::endl;
+
+		std::cout << "MAX COLOR KEY: " << max_color_key << std::endl;
+		std::cout << "MAX COORDINATES: X: " << max_x << " Y: " << max_y << std::endl;
 	
 		if(color == 'B') {
 			if(B > 100 && B > G && (B + G) > R * 2) filtered.push_back(bodies[i]);
@@ -179,6 +206,7 @@ void Tracker::track() {
 	
 	cv::Mat frame;
 	cv::Mat frame_gray;
+	cv::Mat frame_modified;
 	
 	if(!faceDetector.load("/home/pi/Desktop/opencv/opencv-master/data/haarcascades/haarcascade_frontalface_default.xml")) {
 		std::cout << "ERROR: Unable to load face detector!" << std::endl;
@@ -216,7 +244,42 @@ void Tracker::track() {
 			std::vector<std::vector<float>> bodies_vect = rectanglesToFloatVector(bodies);
 			bodies = nms(bodies_vect, 0.001);
 
-			filterByColor(bodies, frame);		// IMPORTANT: Use frame and not frame_gray for color detection
+			//std::cout << "NUMBER OF PERSONS FOUND: " << bodies.size() << std::endl;
+
+			int x, y;
+
+
+			if(bodies.size() > 0) getCentroid(bodies[0], x, y);
+
+			//frame_modified = frame.clone();
+
+			/*
+
+			if(bodies.size() > 0) {
+				cv::circle(frame_modified,cv::Point(x,y), 20, cv::Scalar(0, 255, 0));
+				std::cout << "CENTROID: X: " << x << " Y: " << y << std::endl;
+			}
+
+			if(bodies.size() > 0) cv::rectangle(frame_modified, cv::Point(bodies[0].x, bodies[0].y), cv::Point(bodies[0].x + bodies[0].width, bodies[0].y + bodies[0].height), cv::Scalar(0, 255, 0), 2);
+			
+			bool written = false;
+
+			if(bodies.size() > 0) {
+				cv::imwrite("new.jpg", frame_modified);
+				written = true;
+			}
+
+			*/
+
+
+
+			//filterByColor(bodies, frame);		// IMPORTANT: Use frame and not frame_gray for color detection
+
+			
+
+
+			//std::cout << "NUMBER OF COLORED PERSONS FOUND: " << bodies.size() << std::endl;
+
 			
 			if(bodies.size() > 0) {
 				target.bbox = bodies[rand() % bodies.size()];
@@ -249,7 +312,7 @@ void Tracker::track() {
 
 			// Verify locked target is actually a target
 			// Do this every 150 frames = 5 seconds @ 30 FPS, 2.5 seconds @ 60 FPS
-			if(frameCount > 150) {	
+			if(frameCount > 1000) {	
 				frameCount = 0;
 
 				if(target.center_x < 0 || target.center_y < 0) {

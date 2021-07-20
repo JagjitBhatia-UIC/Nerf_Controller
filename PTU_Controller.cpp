@@ -105,6 +105,11 @@ int PTU_Controller::pan_abs(int pos) {
     return move_abs(pos, pos_y);
 }
 
+void PTU_Controller::getCurrentPosition(int &x, int &y) {
+    x = pos_x;
+    y = pos_y;
+}
+
 int PTU_Controller::move_abs(int _pos_x, int _pos_y) {
     if(connected) {
         if(_pos_x < 0 || _pos_x > MAX_POSITION) {

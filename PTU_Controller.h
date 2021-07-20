@@ -17,8 +17,8 @@
 #define ORIGIN_Y 530
 #define MIN_POSITION 0
 #define MAX_POSITION 1023
-#define MIN_POSITION_Y 510
-#define MAX_POSITION_Y 610
+#define MIN_POSITION_Y 410
+#define MAX_POSITION_Y 500
 
 #define PTU_PACKET_SIZE_BYTES 8
 #define PTU_SERIAL_MAGIC_NUMBER 7   // Magic number to sleep before starting PTU serial writes 
@@ -62,6 +62,7 @@ class PTU_Controller {
         int move(int _pan, int _tilt);
         void PrintState();
         void SetDelayMS(int delay);
+        void getCurrentPosition(int &x, int &y);
         
 };
 
