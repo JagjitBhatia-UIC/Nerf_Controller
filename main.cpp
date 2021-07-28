@@ -6,6 +6,7 @@
 #include <cmath>
 #include <pthread.h>
 #include <time.h>
+#include <cstring>
 
 #define MANUAL 0
 #define AUTONOMOUS 1
@@ -28,6 +29,19 @@ int camera = 0;
 int mode;
 int state;
 
+// Snagged from https://www.fluentcpp.com/2017/04/21/how-to-split-a-string-in-c/
+std::vector<std::string> split(const std::string& s, char delimiter)
+{
+   std::vector<std::string> tokens;
+   std::string token;
+   std::istringstream tokenStream(s);
+   while (std::getline(tokenStream, token, delimiter))
+   {
+      tokens.push_back(token);
+   }
+   return tokens;
+}
+
 // Convert tracker x,y coordinates to pan,tilt movements
 void convertTrackerPositionToPanTilt(int tracker_x, int tracker_y, int &pan, int &tilt) {
  
@@ -41,6 +55,84 @@ void convertTrackerPositionToPanTilt(int tracker_x, int tracker_y, int &pan, int
    pan = -1 * round(((((double) (tracker_x - (RESOLUTION_X * 1.0)/2)) * ((double) FOV_X))/(360.0))/(270.0/MAX_POSITION));
 
   //pan *= 10;
+}
+
+
+void *tcp_thread(void* args) {
+	std::cout << "Attempting to connect..." << std::endl;
+	int tcp_socket;
+	struct sockaddr_in address;
+	char recvBuf[1024];
+
+	if((tcp_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		std::cout << "Failed to initialize socket" << std::endl;
+		return 0;
+	}
+
+	else {
+		std::cout << "Socket initialized." << std::endl;
+	}
+
+	address.sin_family = AF_INET;
+	address.sin_port = htons(2123);
+	address.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+	if(connect(tcp_socket, (struct sockaddr*) &address, sizeof(address)) < 0) {
+		std::cout << "Failed to connect to TCP Server" << std::endl;
+		return 0;
+	}
+
+	else {
+		std::cout << "Connection successful!" << std::endl;
+	}
+
+	while(true) {
+		memset(recvBuf, 0, sizeof(recvBuf));
+		if(read(tcp_socket, recvBuf, sizeof(recvBuf) - 1) > 0) {
+			if(std::strcmp(recvBuf, "lock") == 0) state = ENGAGE;
+			if(std::strcmp(recvBuf, "unlock") == 0) state = SCAN;
+		}
+	}
+}
+
+void *udp_thread(void* args) {
+	int udp_socket, tracker_x, tracker_y;
+	struct sockaddr_in address, client;
+	char recvBuf[1024];
+	std::vector<std::string> position_vector;
+
+	if((udp_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		std::cout << "Failed to initialize socket" << std::endl;
+		return 0;
+	}
+
+	address.sin_family = AF_INET;
+	address.sin_port = htons(3284);
+	address.sin_addr.s_addr = INADDR_ANY;
+
+	if(bind(udp_socket, (const struct sockaddr*) &address, sizeof(address)) < 0) {
+		std::cout << "Failed to bind to address & port" << std::endl;
+		return 0;
+	}
+
+	socklen_t len = sizeof(client);
+	
+	while(true) {
+		memset(recvBuf, 0, sizeof(recvBuf));
+		if(recvfrom(udp_socket, (char*) recvBuf, sizeof(recvBuf), MSG_WAITALL, (struct sockaddr*) &client, &len) > 0) {
+			position_vector = split(std::string(recvBuf), ',');
+			if(position_vector.size() > 1) {
+				tracker_x = atoi(position_vector[0]);
+				tracker_y = atoi(position_vector[1]);
+
+				convertTrackerPositionToPanTilt(tracker_x, tracker_y, x_position, y_position);
+
+			}
+		}
+	}
+	
+	return 0;
+
 }
 
 // Tracker Controller Thread
@@ -194,11 +286,17 @@ int main(int argc, char **argv) {
 
 	pthread_t tid_ptu;
 	pthread_t tid_firing;
-	pthread_t tid_tracker;
+	//pthread_t tid_tracker;
 
 	pthread_create(&tid_ptu, NULL, &ptu_thread, NULL);
 	pthread_create(&tid_firing, NULL, &firing_thread, NULL);
-	pthread_create(&tid_tracker, NULL, &tracker_thread, NULL);
+	//pthread_create(&tid_tracker, NULL, &tracker_thread, NULL);
+
+	pthread_t tid_tcp_server;
+	pthread_t tid_udp_server;
+
+	pthread_create(&tid_tcp_server, NULL, &tcp_thread, NULL);
+	pthread_create(&tid_udp_server, NULL, &udp_thread, NULL);
 
 	bool quit = false;
 
