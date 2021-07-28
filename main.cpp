@@ -122,8 +122,8 @@ void *udp_thread(void* args) {
 		if(recvfrom(udp_socket, (char*) recvBuf, sizeof(recvBuf), MSG_WAITALL, (struct sockaddr*) &client, &len) > 0) {
 			position_vector = split(std::string(recvBuf), ',');
 			if(position_vector.size() > 1) {
-				tracker_x = atoi(position_vector[0]);
-				tracker_y = atoi(position_vector[1]);
+				tracker_x = atoi(position_vector[0].c_str());
+				tracker_y = atoi(position_vector[1].c_str());
 
 				convertTrackerPositionToPanTilt(tracker_x, tracker_y, x_position, y_position);
 

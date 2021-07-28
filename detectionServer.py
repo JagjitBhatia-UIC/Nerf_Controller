@@ -136,8 +136,8 @@ tcp_socket.listen()
 tcp_server, addr = tcp_socket.accept()
 
 udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#client_addr = ('192.168.1.71', 8085)
-client_addr = ('127.0.0.1', 3284)
+client_addr = ('192.168.1.37', 3284)
+#client_addr = ('127.0.0.1', 3284)
 print('Attempting to connect...')
 try:
 	udp_socket.sendto(b'Welcome!', client_addr)
